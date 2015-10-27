@@ -4,6 +4,7 @@
 import numpy as np
 from numpy import array
 from math import log
+from __future__ import division
 
 
 class BaseSegmentUnit(object):
@@ -21,7 +22,7 @@ class BaseSegmentUnit(object):
 
     @property
     def lm(self):
-        return 2*self.l*self.m + self.m*log(self.m, 2)
+        return 2*self.l*log(self.m, 2) + self.m*log(self.m, 2)
 
     @property
     def ld(self):
