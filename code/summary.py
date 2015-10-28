@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
+from __future__ import division
 import numpy as np
 from numpy import array
 from math import log
-from __future__ import division
 
 
 class BaseSegmentUnit(object):
@@ -65,8 +65,8 @@ class BaseEventSeq(object):
 
 
 if __name__ == '__main__':
-    x = BaseEventSeq(3, 4)
-    x.input()
-    x.show_s()
-    y = BaseSegmentUnit(x.S[:, 1:3])
+    xx = BaseEventSeq(3, 4)
+    xx.input()
+    xx.show_s()
+    y = BaseSegmentUnit(xx.S[:, 1:3])
     y.show_s()

@@ -1,0 +1,71 @@
+# -*- coding: utf-8 -*-
+
+from __future__ import division
+from numpy import array
+
+
+BIT_TREE_DEFAULT_SIZE = 10000
+lowbit = lambda x: x & -x
+
+
+class BitTree(object):
+    """
+    在维护区间和的时候可以利用树状数组优化
+    为了支持数组性质, 这里的树状数组在更新, 查询前对x进行-1的偏置(支持x==0)
+    self.bit 为树状数组,
+    todo: 加入原生数组支持, self.raw
+    """
+    _instance = None
+
+    def __new__(cls, *args, **kwargs):
+        """
+        单例模式树状数组, 节省开销.
+        """
+        if cls._instance is None:
+            cls._instance = super(BitTree, cls).__new__(cls, *args, **kwargs)
+        return cls._instance
+
+    def __init__(self, maxsize=BIT_TREE_DEFAULT_SIZE):
+        """
+        初始化树状数组的maxsize.
+        """
+        print 'hi'
+        self.maxsize = maxsize
+        self.bit = array([0]*(maxsize+1))
+
+    def update(self, x, val):
+        """
+        x处单点更新val的增量
+        :param x: 更新位置, 注意0<=x<maxsize
+        :param val: 增量
+        :return: None
+        """
+        x += 1
+        while x < self.maxsize:
+            self.bit[x] += val
+            x += lowbit(x)
+
+    def sum(self, x):
+        """
+        查询前x项和
+        """
+        x += 1
+        res = 0
+        while x > 0:
+            res += self.bit[x]
+            x -= lowbit(x)
+        return res
+
+
+if __name__ == '__main__':
+    """
+        just test it
+    """
+    bt = BitTree(50)
+    bt.update(1, 5)
+    print bt.sum(1)
+    print bt.sum(3)
+    bt.update(3, 14)
+    print bt.sum(1)
+    print bt.sum(2)
+    print bt.sum(3)
