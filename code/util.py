@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import division
-from numpy import array
+import numpy as np
 
 
-BIT_TREE_DEFAULT_SIZE = 10000
+BIT_TREE_DEFAULT_SIZE = 500
 lowbit = lambda x: x & -x
 
 
@@ -29,9 +29,10 @@ class BitTree(object):
         """
         初始化树状数组的maxsize.
         """
-        print 'hi'
         self.maxsize = maxsize
-        self.bit = array([0]*(maxsize+1))
+        if not hasattr(self, 'bit') or len(self.bit) < maxsize+1:
+            self.bit = np.zeros(maxsize+1, dtype=int)
+        self.bit[:] = 0
 
     def update(self, x, val):
         """
