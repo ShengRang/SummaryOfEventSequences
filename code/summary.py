@@ -6,12 +6,15 @@ import numpy as np
 from numpy import array
 from math import log
 
+from util import BitTree
+
 
 class BaseSegmentUnit(object):
     def __init__(self, arr):
         self.M = arr
         self.m, self.n = arr.shape
         self.bound = array([1]*self.m)
+        self.bit_tree = BitTree(maxsize=self.m)
 
     def show_s(self):
         print self.M

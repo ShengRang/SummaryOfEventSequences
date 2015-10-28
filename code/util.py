@@ -13,7 +13,7 @@ class BitTree(object):
     在维护区间和的时候可以利用树状数组优化
     为了支持数组性质, 这里的树状数组在更新, 查询前对x进行-1的偏置(支持x==0)
     self.bit 为树状数组,
-    todo: 加入原生数组支持, self.raw
+    self.raw 为原始数组
     """
     _instance = None
 
@@ -32,7 +32,10 @@ class BitTree(object):
         self.maxsize = maxsize
         if not hasattr(self, 'bit') or len(self.bit) < maxsize+1:
             self.bit = np.zeros(maxsize+1, dtype=int)
+        if not hasattr(self, 'raw') or len(self.raw) < maxsize+1:
+            self.raw = np.zeros(maxsize+1, dtype=int)
         self.bit[:] = 0
+        self.raw[:] = 0
 
     def update(self, x, val):
         """
@@ -42,6 +45,7 @@ class BitTree(object):
         :return: None
         """
         x += 1
+        self.raw[x] += val
         while x < self.maxsize:
             self.bit[x] += val
             x += lowbit(x)
@@ -56,6 +60,16 @@ class BitTree(object):
             res += self.bit[x]
             x -= lowbit(x)
         return res
+
+    def query(self, l, r):
+        """
+        区间查询和
+        """
+        if l <= 0:
+            return sum(r)
+        if l == r:
+            return self.raw[r]
+        return sum(r) - sum(l-1)
 
 
 if __name__ == '__main__':
