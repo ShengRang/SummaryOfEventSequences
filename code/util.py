@@ -29,6 +29,7 @@ class BitTree(object):
         """
         初始化树状数组的maxsize.
         """
+        maxsize = max(maxsize, BIT_TREE_DEFAULT_SIZE)
         self.maxsize = maxsize
         if not hasattr(self, 'bit') or len(self.bit) < maxsize+1:
             self.bit = np.zeros(maxsize+1, dtype=int)
@@ -66,10 +67,10 @@ class BitTree(object):
         区间查询和
         """
         if l <= 0:
-            return sum(r)
+            return self.sum(r)
         if l == r:
             return self.raw[r]
-        return sum(r) - sum(l-1)
+        return self.sum(r) - self.sum(l-1)
 
 
 if __name__ == '__main__':
