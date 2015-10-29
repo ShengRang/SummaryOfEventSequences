@@ -23,8 +23,8 @@ class BaseSegmentUnit(object):
             pe = min(ne/self.n, 1-1e-6)
             t = (i, ne, pe)
             self.model.append(t)
-        print 'get model: '
-        pprint(self.model)
+        #print 'get model: '
+        #pprint(self.model)
         self.model = sorted(self.model, key=lambda x: -x[1])
         for i in range(len(self.model)):
             self.bit_tree.update(i, self.model[i][1])
@@ -72,8 +72,8 @@ class BaseSegmentUnit(object):
         :return: Pr  (Ld = -log(Pr, 2))
         """
         res = 1.0
-        print 'bound: '
-        print self.bound
+        #print 'bound: '
+        #print self.bound
         for i, v in enumerate(self.bound):
             if v == 0 or i == 0:
                 continue
@@ -119,8 +119,7 @@ class BaseEventSeq(object):
     def __init__(self, m, n):
         self.m, self.n = m, n
         self.S = array([0]*m*n).reshape(m, n)
-        #print self.S
-        self.bound = array([1]*self.n)
+        self.bound = array([1]*(self.n+1))
 
     def input(self):
         for i in range(self.m):
@@ -129,11 +128,17 @@ class BaseEventSeq(object):
     def show_s(self):
         print self.S
 
+    def find(self):
+        """
+        贪心或者dp去搞把..
+        """
+        raise NotImplementedError()
+
 
 class GreedySegmentUnit(BaseSegmentUnit):
     def __init__(self, *args, **kwargs):
         super(GreedySegmentUnit, self).__init__(*args, **kwargs)
-        self.delta = np.zeros(self.m+1, dtype=float)
+        self.delta = np.zeros(self.m+1, dtype=np.float64)
 
     def init_delta(self):
         """
@@ -165,7 +170,7 @@ class GreedySegmentUnit(BaseSegmentUnit):
         p_ai = min(bit_tree.query(a, pos-1) / ((pos - a) * n), 1.0 - 1e-6)
         p_ib = min(bit_tree.query(pos, b-1) / ((b - pos) * n), 1.0 - 1e-6)
         p_ab = min(bit_tree.query(a, b-1) / ((b - a) * n), 1.0 - 1e-6)
-        print p_ai, p_ib, p_ab
+        #print p_ai, p_ib, p_ab
         log_p_ai, log_p_ib, log_p_ab = map(lambda x: log(x, 2), (p_ai, p_ib, p_ab))
         log_1p_ai, log_1p_ib, log_1p_ab = map(lambda x: log(x, 2), (1-p_ai, 1-p_ib, 1-p_ab))
         """
@@ -200,13 +205,25 @@ class GreedySegmentUnit(BaseSegmentUnit):
         return self.ll
 
 
+class GreedyEventSeq(BaseEventSeq):
+    def __init__(self, *args, **kwargs):
+        super(GreedyEventSeq, self).__init__(*args, **kwargs)
+        self.delta = np.zeros(self.m+1, dtype=np.float64)
+
+    def init_delta(self):
+        pass
+
+    def find(self):
+        self.init_delta()
+
+
 if __name__ == '__main__':
     n, m = [int(x) for x in raw_input().split()]
     xx = BaseEventSeq(n, m)
     xx.input()
     xx.show_s()
     y = GreedySegmentUnit(xx.S[:, 0:12])
-    y.show()
+    #y.show()
 
     y.bound[1] = 0
     print 'pr: ' + str(y.pr)
@@ -215,3 +232,5 @@ if __name__ == '__main__':
     print 'll: ' + str(y.ll)
 
     print y.find()
+
+    xx.show_s()
