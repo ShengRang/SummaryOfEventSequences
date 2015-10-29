@@ -10,10 +10,15 @@ from pprint import pprint
 from util import BitTree
 
 
+def std_prob(raw_prob):
+    return max(min(raw_prob, 1-1e-6), 1e-6)
+
+
 class BaseSegmentUnit(object):
     def __init__(self, arr):
         self.M = arr
         self.m, self.n = arr.shape
+        #print 'm, n : %d, %d' % (self.m, self.n)
         self.bound = array([1]*(self.m+1))
         self.bit_tree = BitTree(maxsize=self.m)
         #self.delta = np.zeros(self.m, dtype=float)
@@ -28,8 +33,9 @@ class BaseSegmentUnit(object):
         self.model = sorted(self.model, key=lambda x: -x[1])
         for i in range(len(self.model)):
             self.bit_tree.update(i, self.model[i][1])
-        print 'after sort:'
-        pprint(self.model)
+        #print 'after sort:'
+        #pprint(self.model)
+        #pprint(self.M)
 
     def show(self):
         print '获取的部分S[]数组'
@@ -56,6 +62,7 @@ class BaseSegmentUnit(object):
         """
         :return: 当前划分得到的Ld
         """
+        #print 'pr: %f' % (self.pr, )
         return -log(self.pr, 2)
 
     @property
@@ -82,6 +89,7 @@ class BaseSegmentUnit(object):
                 continue
             px = self.bit_tree.query(a, i-1) / ((i - a)*self.n)
             """
+            print 'n: %d' % (self.n, )
             print 'a: %d, i: %d' % (a, i)
             print 'sn: %d' % (self.bit_tree.query(a, i-1), )
             print 'px : %f' % (px, )
@@ -116,10 +124,15 @@ class BaseSegmentUnit(object):
 
 
 class BaseEventSeq(object):
-    def __init__(self, m, n):
+    def __init__(self, m, n, local_type='default'):
+        """
+        :param local_type: {'default': 默认类型, 'Greedy': local-Greedy, 'Dp': local-DP}
+        :return:
+        """
         self.m, self.n = m, n
         self.S = array([0]*m*n).reshape(m, n)
         self.bound = array([1]*(self.n+1))
+        self.local_type = local_type
 
     def input(self):
         for i in range(self.m):
@@ -133,6 +146,22 @@ class BaseEventSeq(object):
         贪心或者dp去搞把..
         """
         raise NotImplementedError()
+
+    def prev_bound(self, i):
+        """
+        :param i:
+        :return: i的前一个边界, 复杂度O(n), 可以考虑采用别的方式进行优化(例如保存起来并维护)
+        """
+        a = max(x[0] for x in enumerate(self.bound) if x[1] and x[0] < i)
+        return a
+
+    def next_bound(self, i):
+        """
+        :param i: 边界位置
+        :return: 返回i的后一个边界
+        """
+        b = min(x[0] for x in enumerate(self.bound) if x[1] and x[0] > i)
+        return b
 
 
 class GreedySegmentUnit(BaseSegmentUnit):
@@ -167,9 +196,9 @@ class GreedySegmentUnit(BaseSegmentUnit):
         prev_bound, next_bound = self.prev_bound, self.next_bound
         a, b = prev_bound(pos), next_bound(pos)
         delta[pos] = -2 * log(m, 2)    # delta(lm)
-        p_ai = min(bit_tree.query(a, pos-1) / ((pos - a) * n), 1.0 - 1e-6)
-        p_ib = min(bit_tree.query(pos, b-1) / ((b - pos) * n), 1.0 - 1e-6)
-        p_ab = min(bit_tree.query(a, b-1) / ((b - a) * n), 1.0 - 1e-6)
+        p_ai = std_prob(bit_tree.query(a, pos-1) / ((pos - a) * n))
+        p_ib = std_prob(bit_tree.query(pos, b-1) / ((b - pos) * n))
+        p_ab = std_prob(bit_tree.query(a, b-1) / ((b - a) * n))
         #print p_ai, p_ib, p_ab
         log_p_ai, log_p_ib, log_p_ab = map(lambda x: log(x, 2), (p_ai, p_ib, p_ab))
         log_1p_ai, log_1p_ib, log_1p_ab = map(lambda x: log(x, 2), (1-p_ai, 1-p_ib, 1-p_ab))
@@ -191,7 +220,7 @@ class GreedySegmentUnit(BaseSegmentUnit):
         update_delta = self.update_delta
         while True:
             idx, val = np.argmin(delta), min(delta)
-            print '本轮查询最小值及下标: (val: %.3f, idx: %d)' % (val, idx)
+            #print '本轮查询最小值及下标: (val: %.3f, idx: %d)' % (val, idx)
             if val >= 0:
                 break
             else:
@@ -200,24 +229,94 @@ class GreedySegmentUnit(BaseSegmentUnit):
                 a, b = prev_bound(idx), next_bound(idx)
                 update_delta(a)
                 update_delta(b)
-        print '完成段内分组: '
-        print bound
+        #print '完成段内分组: (%d, %d)' % (self.m, self.n)
+        #print bound
         return self.ll
+
+
+class DpSegmentUnit(BaseSegmentUnit):
+    def __init__(self, *args, **kwargs):
+        super(GreedySegmentUnit, self).__init__(*args, **kwargs)
 
 
 class GreedyEventSeq(BaseEventSeq):
     def __init__(self, *args, **kwargs):
         super(GreedyEventSeq, self).__init__(*args, **kwargs)
-        self.delta = np.zeros(self.m+1, dtype=np.float64)
+        self.delta = np.zeros(self.n+1, dtype=np.float64)
 
     def init_delta(self):
-        pass
+        """
+        初始化delta
+        """
+        n = self.n
+        delta = self.delta
+        update_delta = self.update_delta
+        delta[0] = delta[n] = 123   #两端边界无法移除
+        self.bound[:] = 1           #假设全部存在边界
+        for i, v in enumerate(self.bound):
+            if i == 0 or i == n:
+                '''
+                两端delta不计算
+                '''
+                continue
+            update_delta(i)
+
+    def update_delta(self, pos):
+        """
+        更新pos位置的delta值
+        """
+        n = self.n
+        delta = self.delta
+        prev_bound, next_bound = self.prev_bound, self.next_bound
+        if pos == 0 or pos == n:
+            return
+
+        def LocalSegment(*args, **kwargs):
+            return local_factory(self.local_type)(*args, **kwargs)
+
+        a, b = prev_bound(pos), next_bound(pos)
+        delta[pos] = - log(n, 2)
+        vx = LocalSegment(self.S[:, a:pos]).find()
+        vy = LocalSegment(self.S[:, pos:b]).find()
+        vz = LocalSegment(self.S[:, a:b]).find()
+        #print 'vx, vy, vz: (%f, %f, %f)' % (vx, vy, vz)
+        delta[pos] += vz-(vx+vy)
+        return
 
     def find(self):
         self.init_delta()
+        delta = self.delta
+        bound = self.bound
+        prev_bound, next_bound = self.prev_bound, self.next_bound
+        update_delta = self.update_delta
+        while True:
+            idx, val = np.argmin(delta), min(delta)
+            print '本轮寻找最小值: idx: %d, val: %f' % (idx, val)
+            if val >= 0:
+                break
+            else:
+                bound[idx] = 0
+                delta[idx] = 123
+                a, b = prev_bound(idx), next_bound(idx)
+                update_delta(a)
+                update_delta(b)
+        print '完成Greedy分组.'
+        print bound
+
+
+def local_factory(local_type):
+    if local_type == 'default':
+        return BaseSegmentUnit
+    elif local_type == 'Greedy':
+        return GreedySegmentUnit
+    elif local_type == 'Dp':
+        return DpSegmentUnit
+    else:
+        raise TypeError()
 
 
 if __name__ == '__main__':
+    """
     n, m = [int(x) for x in raw_input().split()]
     xx = BaseEventSeq(n, m)
     xx.input()
@@ -234,3 +333,8 @@ if __name__ == '__main__':
     print y.find()
 
     xx.show_s()
+    """
+    n, m = [int(x) for x in raw_input().split()]
+    test_seq = GreedyEventSeq(n, m, 'Greedy')
+    test_seq.input()
+    test_seq.find()
