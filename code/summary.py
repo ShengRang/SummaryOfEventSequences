@@ -126,10 +126,69 @@ class BaseEventSeq(object):
 class GreedySegmentUnit(BaseSegmentUnit):
     def __init__(self, *args, **kwargs):
         super(GreedySegmentUnit, self).__init__(*args, **kwargs)
-        self.delta = np.zeros(self.m, dtype=float)
+        self.delta = np.zeros(self.m+1, dtype=float)
+
+    def init_delta(self):
+        """
+        初始化所有的delte. (全部有边界)
+        """
+        m = self.m
+        delta = self.delta
+        delta[0] = delta[m] = 123   #两端无法去除
+        for i, v in enumerate(self.bound):
+            if i == 0 or i == m:
+                continue
+            self.update_delta(i)
+
+    def update_delta(self, pos):
+        """
+        :param pos: 位置
+        :return: 更新pos处的delta值
+        """
+        n = self.n
+        m = self.m
+        if pos == 0 or pos == m:
+            return
+        bit_tree = self.bit_tree
+        delta = self.delta
+        prev_bound, next_bound = self.prev_bound, self.next_bound
+        a, b = prev_bound(pos), next_bound(pos)
+        delta[pos] = -2 * log(m, 2)    # delta(lm)
+        p_ai = bit_tree.query(a, pos-1) / ((pos - a) * n)
+        p_ib = bit_tree.query(pos, b-1) / ((b - pos) * n)
+        p_ab = bit_tree.query(a, b-1) / ((b - a) * n)
+        log_p_ai, log_p_ib, log_p_ab = map(lambda x: log(x, 2), (p_ai, p_ib, p_ab))
+        log_1p_ai, log_1p_ib, log_1p_ab = map(lambda x: log(x, 2), (1-p_ai, 1-p_ib, 1-p_ab))
+        """
+        计算delta(ld)
+        """
+        for k in range(a, pos):
+            nk = bit_tree.query(k, k)
+            delta[pos] += nk*(log_p_ai-log_p_ab) + (n-nk)*(log_1p_ai-log_1p_ab)
+        for k in range(pos, b):
+            nk = bit_tree.query(k, k)
+            delta[pos] += nk*(log_p_ib-log_p_ab) + (n-nk)*(log_1p_ib-log_1p_ab)
 
     def find(self):
-        pass
+        self.init_delta()
+        delta = self.delta
+        bound = self.bound
+        prev_bound, next_bound = self.prev_bound, self.next_bound
+        update_delta = self.update_delta
+        while True:
+            idx, val = np.argmin(delta), min(delta)
+            print '本轮查询最小值及下标: (val: %.3f, idx: %d)' % (val, idx)
+            if val >= 0:
+                break
+            else:
+                bound[idx] = 0
+                delta[idx] = 123    #移除边界
+                a, b = prev_bound(idx), next_bound(idx)
+                update_delta(a)
+                update_delta(b)
+        print '完成段内分组: '
+        print bound
+        return self.ll
 
 
 if __name__ == '__main__':
@@ -139,8 +198,11 @@ if __name__ == '__main__':
     xx.show_s()
     y = GreedySegmentUnit(xx.S[:, 0:12])
     y.show()
+    """
     y.bound[1] = 0
     print 'pr: ' + str(y.pr)
     print 'ld: ' + str(y.ld)
     print 'lm: ' + str(y.lm)
     print 'll: ' + str(y.ll)
+    """
+    print y.find()
