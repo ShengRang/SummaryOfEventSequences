@@ -20,7 +20,8 @@ class BaseSegmentUnit(object):
         self.model = []
         for i in range(self.m):
             ne = sum(1 for x in self.M[i] if x == 1)
-            t = (i, ne, ne/self.n)
+            pe = min(ne/self.n, 1-1e-6)
+            t = (i, ne, pe)
             self.model.append(t)
         print 'get model: '
         pprint(self.model)
@@ -154,9 +155,10 @@ class GreedySegmentUnit(BaseSegmentUnit):
         prev_bound, next_bound = self.prev_bound, self.next_bound
         a, b = prev_bound(pos), next_bound(pos)
         delta[pos] = -2 * log(m, 2)    # delta(lm)
-        p_ai = bit_tree.query(a, pos-1) / ((pos - a) * n)
-        p_ib = bit_tree.query(pos, b-1) / ((b - pos) * n)
-        p_ab = bit_tree.query(a, b-1) / ((b - a) * n)
+        p_ai = min(bit_tree.query(a, pos-1) / ((pos - a) * n), 1.0 - 1e-6)
+        p_ib = min(bit_tree.query(pos, b-1) / ((b - pos) * n), 1.0 - 1e-6)
+        p_ab = min(bit_tree.query(a, b-1) / ((b - a) * n), 1.0 - 1e-6)
+        print p_ai, p_ib, p_ab
         log_p_ai, log_p_ib, log_p_ab = map(lambda x: log(x, 2), (p_ai, p_ib, p_ab))
         log_1p_ai, log_1p_ib, log_1p_ab = map(lambda x: log(x, 2), (1-p_ai, 1-p_ib, 1-p_ab))
         """
@@ -196,7 +198,7 @@ if __name__ == '__main__':
     xx = BaseEventSeq(n, m)
     xx.input()
     xx.show_s()
-    y = GreedySegmentUnit(xx.S[:, 0:12])
+    y = GreedySegmentUnit(xx.S[:, 12:21])
     y.show()
     """
     y.bound[1] = 0
