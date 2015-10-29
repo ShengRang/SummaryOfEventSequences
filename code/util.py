@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import division
 import numpy as np
 
 
@@ -71,9 +70,126 @@ class BitTree(object):
         return self.sum(r) - self.sum(l-1)
 
 
+class Heap(object):
+    """
+    一个堆.. 记录了进入堆的元素在堆的什么位置....
+    用来优化论文算法
+    """
+    def __init__(self, key=lambda x: x, data=None):
+        self.heap = []
+        self.heap.extend(data)
+        self.index = range(len(self.heap))
+        self.re_index = range(len(self.heap))
+        self.hlength = len(self.heap)
+        self.total = len(self.heap)
+        self.key = key
+
+    def heapify(self):
+        hlength = self.hlength
+        down = self.down
+        for i in range((hlength-1)/2)[::-1]:
+            down(i)
+        return
+
+    def up(self, p):
+        """
+        p处元素上浮
+        """
+        heap = self.heap
+        index = self.index
+        re_index = self.re_index
+        key = self.key
+        q = (p-1) / 2
+        a = heap[p]
+        r = re_index[p]
+        while q >= 0 and key(heap[q]) < key(a):
+            heap[p] = heap[q]
+            re_index[p] = re_index[q]
+            index[re_index[q]] = p
+            p = q
+            q = (p-1) / 2
+        heap[p] = a
+        re_index[p] = r
+        index[r] = p
+        return
+
+    def down(self, p):
+        """
+        p除元素下沉
+        """
+        heap = self.heap
+        index = self.index
+        re_index = self.re_index
+        hlength = self.hlength
+        key = self.key
+        q = p*2 + 1
+        a = heap[p]
+        r = re_index[p]
+        while q < self.hlength:
+            if q+1 < hlength and key(heap[q+1]) > key(heap[q]):
+                q += 1
+            if key(heap[q]) <= key(a):
+                break
+            heap[p] = heap[q]
+            re_index[p] = re_index[q]
+            index[re_index[q]] = p
+            p = q
+            q = p*2 + 1
+        heap[p] = a
+        re_index[p] = r
+        index[r] = p
+        return
+
+    def index(self, i):
+        """
+        返回最初第i个进入堆的元素, 在heap[]数组中当前位置
+        """
+        return self.index[i]
+
+    def delete(self, p):
+        """
+        返回heap[pos]处的元素
+        """
+        hlength = self.hlength
+        heap = self.heap
+        re_index = self.re_index
+        index = self.index
+        if 0 <= p < hlength:
+            heap[p] = heap[hlength-1]
+            index[re_index[hlength-1]] = p
+            re_index[p] = re_index[hlength-1]
+            self.up(p)
+            self.down(p)
+            hlength -= 1
+
+    def heap_pop(self):
+        """
+        删除堆顶元素
+        """
+        tmp = self.heap[0]
+        self.delete(0)
+        return tmp
+
+    def heap_push(self, val):
+        """
+        插入新元素到堆中
+        """
+        heap, hlength, re_index, index, total = self.heap, self.hlength, self.re_index, self.index, self.total
+        if len(heap) <= hlength:
+            heap.extend([0]*(hlength-len(heap)+1))
+        heap[hlength] = val
+        if len(re_index) <= hlength:
+            re_index.extend([0]*(hlength-len(re_index)+1))
+        re_index[hlength] = total
+        index.append(hlength)    #index[total] = hlength
+        hlength, total = hlength+1, total+1
+        self.up(hlength-1)
+
+
 if __name__ == '__main__':
     """
         just test it
+    """
     """
     x = BitTree()
     x.update(0, 11)
@@ -88,3 +204,11 @@ if __name__ == '__main__':
     print x.query(1, 2)
 
     print x.query(0, 2)
+    """
+    # test the heap
+    x = [5, 7, 2, 3, 4, 1]
+    heap = Heap(key=lambda t: -t, data=x)
+    heap.heapify()
+    print heap.heap
+    print heap.index
+    print heap.re_index
