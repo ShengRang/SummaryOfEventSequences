@@ -72,14 +72,20 @@ class BaseSegmentUnit(object):
         :return: Pr  (Ld = -log(Pr, 2))
         """
         res = 1.0
+        print 'bound: '
+        print self.bound
         for i, v in enumerate(self.bound):
-            if v == 0:
-                #没有边界则不计算
+            if v == 0 or i == 0:
                 continue
             a = self.prev_bound(i)
             if a is None:
                 continue
             px = self.bit_tree.query(a, i-1) / ((i - a)*self.n)
+            """
+            print 'a: %d, i: %d' % (a, i)
+            print 'sn: %d' % (self.bit_tree.query(a, i-1), )
+            print 'px : %f' % (px, )
+            """
             f = lambda x: px**x[1] * (1-px)**(self.n-x[1])
             for i in range(a, i):
                 res *= f(self.model[i])
@@ -90,16 +96,16 @@ class BaseSegmentUnit(object):
         :param i:
         :return: i的前一个边界, 复杂度O(n), 可以考虑采用别的方式进行优化(例如保存起来并维护)
         """
-        a = min(x[0] for x in enumerate(self.bound) if x[1])
-        return a if a < i else None
+        a = max(x[0] for x in enumerate(self.bound) if x[1] and x[0] < i)
+        return a
 
     def next_bound(self, i):
         """
         :param i: 边界位置
         :return: 返回i的后一个边界
         """
-        b = max(x[0] for x in enumerate(self.bound) if x[1])
-        return b if b > i else None
+        b = min(x[0] for x in enumerate(self.bound) if x[1] and x[0] > i)
+        return b
 
     def find(self):
         """
@@ -136,6 +142,7 @@ class GreedySegmentUnit(BaseSegmentUnit):
         m = self.m
         delta = self.delta
         delta[0] = delta[m] = 123   #两端无法去除
+        self.bound[:] = 1
         for i, v in enumerate(self.bound):
             if i == 0 or i == m:
                 continue
@@ -198,13 +205,13 @@ if __name__ == '__main__':
     xx = BaseEventSeq(n, m)
     xx.input()
     xx.show_s()
-    y = GreedySegmentUnit(xx.S[:, 12:21])
+    y = GreedySegmentUnit(xx.S[:, 0:12])
     y.show()
-    """
+
     y.bound[1] = 0
     print 'pr: ' + str(y.pr)
     print 'ld: ' + str(y.ld)
     print 'lm: ' + str(y.lm)
     print 'll: ' + str(y.ll)
-    """
+
     print y.find()

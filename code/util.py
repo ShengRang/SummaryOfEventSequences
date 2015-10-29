@@ -66,10 +66,8 @@ class BitTree(object):
         """
         区间查询和
         """
-        if l <= 0:
-            return self.sum(r)
         if l == r:
-            return self.raw[r]
+            return self.raw[r+1]
         return self.sum(r) - self.sum(l-1)
 
 
@@ -77,11 +75,16 @@ if __name__ == '__main__':
     """
         just test it
     """
-    bt = BitTree(50)
-    bt.update(1, 5)
-    print bt.sum(1)
-    print bt.sum(3)
-    bt.update(3, 14)
-    print bt.sum(1)
-    print bt.sum(2)
-    print bt.sum(3)
+    x = BitTree()
+    x.update(0, 11)
+    x.update(1, 10)
+    x.update(2, 2)
+
+    print x.query(0, 0)
+    print x.query(1, 1)
+    print x.query(2, 2)
+
+    print x.query(0, 1)
+    print x.query(1, 2)
+
+    print x.query(0, 2)
