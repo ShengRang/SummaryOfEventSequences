@@ -83,17 +83,25 @@ class Heap(object):
         self.hlength = len(self.heap)
         self.total = len(self.heap)
         self.key = key
+        """
+        print 'raw heap: '
+        print self.heap
+        print 'raw length:'
+        print self.hlength
+        print 'raw index: '
+        print self.index
+        """
 
     def heapify(self):
         hlength = self.hlength
         down = self.down
-        for i in range((hlength-1)/2)[::-1]:
+        for i in range((hlength-1)/2+1)[::-1]:
             down(i)
         return
 
     def up(self, p):
         """
-        p处元素上浮
+        p处元素上浮, O(log n)
         """
         heap = self.heap
         index = self.index
@@ -102,7 +110,7 @@ class Heap(object):
         q = (p-1) / 2
         a = heap[p]
         r = re_index[p]
-        while q >= 0 and key(heap[q]) < key(a):
+        while q >= 0 and key(heap[q]) > key(a):
             heap[p] = heap[q]
             re_index[p] = re_index[q]
             index[re_index[q]] = p
@@ -115,7 +123,7 @@ class Heap(object):
 
     def down(self, p):
         """
-        p除元素下沉
+        p除元素下沉 O(log n)
         """
         heap = self.heap
         index = self.index
@@ -125,10 +133,10 @@ class Heap(object):
         q = p*2 + 1
         a = heap[p]
         r = re_index[p]
-        while q < self.hlength:
-            if q+1 < hlength and key(heap[q+1]) > key(heap[q]):
+        while q < hlength:
+            if q+1 < hlength and key(heap[q+1]) < key(heap[q]):
                 q += 1
-            if key(heap[q]) <= key(a):
+            if key(heap[q]) >= key(a):
                 break
             heap[p] = heap[q]
             re_index[p] = re_index[q]
@@ -140,7 +148,7 @@ class Heap(object):
         index[r] = p
         return
 
-    def index(self, i):
+    def get_index(self, i):
         """
         返回最初第i个进入堆的元素, 在heap[]数组中当前位置
         """
@@ -148,7 +156,7 @@ class Heap(object):
 
     def delete(self, p):
         """
-        返回heap[pos]处的元素
+        返回heap[pos]处的元素 O(log n)
         """
         hlength = self.hlength
         heap = self.heap
@@ -164,7 +172,7 @@ class Heap(object):
 
     def heap_pop(self):
         """
-        删除堆顶元素
+        删除堆顶元素 O(log n)
         """
         tmp = self.heap[0]
         self.delete(0)
@@ -172,7 +180,7 @@ class Heap(object):
 
     def heap_push(self, val):
         """
-        插入新元素到堆中
+        插入新元素到堆中 复杂度O(log n)
         """
         heap, hlength, re_index, index, total = self.heap, self.hlength, self.re_index, self.index, self.total
         if len(heap) <= hlength:
@@ -184,6 +192,21 @@ class Heap(object):
         index.append(hlength)    #index[total] = hlength
         hlength, total = hlength+1, total+1
         self.up(hlength-1)
+
+    def modify(self, pos, val):
+        """
+        将heap[pos]修改为val. 然后up, down调整堆
+        复杂度O(log n)
+        """
+        if 0 <= pos < self.hlength:
+            self.heap[pos] = val
+            self.up(pos)
+            self.down(pos)
+        return
+
+    @property
+    def empty(self):
+        return self.hlength <= 0
 
 
 if __name__ == '__main__':
@@ -206,9 +229,12 @@ if __name__ == '__main__':
     print x.query(0, 2)
     """
     # test the heap
-    x = [5, 7, 2, 3, 4, 1]
-    heap = Heap(key=lambda t: -t, data=x)
+    x = [-5, -7, -9, -55]
+    heap = Heap(key=lambda t: t[1], data=enumerate(x))
     heap.heapify()
     print heap.heap
     print heap.index
     print heap.re_index
+
+    print heap.heap_pop()
+    print heap.heap

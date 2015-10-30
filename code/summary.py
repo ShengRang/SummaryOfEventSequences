@@ -7,7 +7,7 @@ from numpy import array
 from math import log
 from pprint import pprint
 
-from util import BitTree
+from util import BitTree, Heap
 
 
 def std_prob(raw_prob):
@@ -289,8 +289,12 @@ class GreedyEventSeq(BaseEventSeq):
         bound = self.bound
         prev_bound, next_bound = self.prev_bound, self.next_bound
         update_delta = self.update_delta
-        while True:
-            idx, val = np.argmin(delta), min(delta)
+        heap = Heap(key=lambda x: x[1], data=enumerate(delta))
+        heap.heapify()
+        print heap.heap
+        while not heap.empty:
+            #idx, val = np.argmin(delta), min(delta)
+            idx, val = heap.heap_pop()
             print '本轮寻找最小值: idx: %d, val: %f' % (idx, val)
             if val >= 0:
                 break
@@ -299,7 +303,9 @@ class GreedyEventSeq(BaseEventSeq):
                 delta[idx] = 123
                 a, b = prev_bound(idx), next_bound(idx)
                 update_delta(a)
+                heap.modify(heap.get_index(a), (a, delta[a]))
                 update_delta(b)
+                heap.modify(heap.get_index(b), (b, delta[b]))
         print '完成Greedy分组.'
         print bound
 
